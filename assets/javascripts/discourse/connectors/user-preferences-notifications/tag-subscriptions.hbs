@@ -12,6 +12,28 @@
   margin-bottom: 0.4rem;
   color: var(--primary);
 }
+.tsub-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 0.4rem;
+}
+.tsub-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--font-down-1);
+  color: var(--primary-medium);
+}
+.tsub-legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background: var(--primary-low);
+}
+.tsub-legend-dot.sel-1 { background: var(--tsub-c1, #e5b000); }
+.tsub-legend-dot.sel-2 { background: var(--tsub-c2, #cc5500); }
 .tsub-hint {
   color: var(--primary-medium);
   font-size: var(--font-down-1);
@@ -89,6 +111,11 @@
   white-space: nowrap;
   flex-shrink: 0;
   margin-right: 0.5em;
+  transition: background 0.1s, color 0.1s;
+}
+.tsub-group-name-btn:hover + .tsub-group-count {
+  background: var(--primary-medium);
+  color: var(--secondary);
 }
 .tsub-expand-btn {
   display: flex;
@@ -154,27 +181,52 @@
   font-size: var(--font-down-1);
   line-height: 1.4;
   transition: background 0.1s, border-color 0.1s;
-}
-.tsub-tag input {
-  margin-top: 2px;
-  flex-shrink: 0;
-  accent-color: var(--tertiary);
+  user-select: none;
 }
 .tsub-tag:hover {
   background: var(--primary-very-low);
 }
-.tsub-tag.selected {
-  background: var(--tertiary-very-low);
-  border-color: var(--tertiary-low);
+.tsub-tag.sel-1 {
+  background: var(--tsub-c1-bg, rgba(229,176,0,0.18));
+  border-color: var(--tsub-c1-bd, rgba(229,176,0,0.5));
+}
+.tsub-tag.sel-2 {
+  background: var(--tsub-c2-bg, rgba(204,85,0,0.18));
+  border-color: var(--tsub-c2-bd, rgba(204,85,0,0.5));
+}
+.tsub-tag-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-low);
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tsub-tag.sel-1 .tsub-tag-dot {
+  background: var(--tsub-c1, #e5b000);
+  border-color: var(--tsub-c1, #e5b000);
+}
+.tsub-tag.sel-2 .tsub-tag-dot {
+  background: var(--tsub-c2, #cc5500);
+  border-color: var(--tsub-c2, #cc5500);
 }
 </style>
 
-<div class="tsub-root">
+<div class="tsub-root" style={{this.rootStyle}}>
   <h3 class="tsub-title">Подписки на теги</h3>
-  <p class="tsub-hint">
-    При появлении новой темы с выбранным тегом вы получите уведомление.
-    Уровень: <strong>{{this.levelLabel}}</strong>
-  </p>
+
+  <div class="tsub-legend">
+    <span class="tsub-legend-item">
+      <span class="tsub-legend-dot sel-1"></span>
+      {{this.level1Label}}
+    </span>
+    <span class="tsub-legend-item">
+      <span class="tsub-legend-dot sel-2"></span>
+      {{this.level2Label}}
+    </span>
+  </div>
+  <p class="tsub-hint">{{this.hintText}}</p>
 
   {{#if this.isLoading}}
     <div class="tsub-loading">
@@ -233,14 +285,13 @@
             </div>
             <div class="tsub-tags-grid">
               {{#each group.tags as |tag|}}
-                <label class="tsub-tag {{if (this.isSelected tag.name) 'selected'}}">
-                  <input
-                    type="checkbox"
-                    checked={{this.isSelected tag.name}}
-                    {{on "change" (fn this.toggleTag tag.name)}}
-                  />
+                <div class="tsub-tag {{this.tagClass tag.name}}"
+                     role="button"
+                     tabindex="0"
+                     {{on "click" (fn this.toggleTag tag.name)}}>
+                  <span class="tsub-tag-dot"></span>
                   <span>{{this.displayName tag.name}}</span>
-                </label>
+                </div>
               {{/each}}
             </div>
           </div>

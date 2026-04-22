@@ -4,50 +4,71 @@ import { action } from "@ember/object";
 import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { schedule } from "@ember/runloop";
+import { htmlSafe } from "@ember/template";
 
-const LEVEL_MAP = {
-  watching_first_post: { saveField: "watching_first_post_tags" },
-  watching:            { saveField: "watched_tags" },
-  tracking:            { saveField: "tracked_tags" },
+// tagName → Discourse API field
+const LEVEL_TO_FIELD = {
+  watching_first_post: "watching_first_post_tags",
+  watching:            "watched_tags",
+  tracking:            "tracked_tags",
 };
 
-const ALL_TAG_FIELDS = [
-  "watching_first_post_tags",
-  "watched_tags",
-  "tracked_tags",
-];
+const FIELD_TO_LEVEL = {
+  watching_first_post_tags: "watching_first_post",
+  watched_tags:             "watching",
+  tracked_tags:             "tracking",
+};
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return isNaN(r) ? hex : `rgba(${r},${g},${b},${alpha})`;
+}
+
+function safeColor(val, fallback) {
+  return /^#[0-9a-fA-F]{3,8}$/.test((val || "").trim()) ? val.trim() : fallback;
+}
 
 export default class TagSubscriptions extends Component {
   @service siteSettings;
 
-  @tracked tagGroups = [];
-  @tracked selectedNames = new Set();
+  @tracked tagGroups    = [];
+  @tracked selectedLevels = new Map(); // tagName → "watching_first_post" | "watching"
   @tracked expandedGroups = new Set();
-  @tracked isLoading = true;
+  @tracked isLoading    = true;
 
-  // {tagName: fieldName} — исходный уровень каждого тега для сохранения неуправляемых тегов
-  _initialFieldMap = {};
-  _saveHandler = null;
-  _saveBtn = null;
-  _observer = null;
+  _initialLevelMap = new Map(); // tagName → level (все поля, включая неуправляемые)
+  _saveHandler  = null;
+  _saveBtn      = null;
+  _observer     = null;
   _displayNameCache = {};
 
-  get notificationLevel() {
-    return this.siteSettings.tag_subscription_notification_level || "watching_first_post";
+  // ─── Настройки цветов и текстов ───────────────────────────────────────────
+
+  get _c1() { return safeColor(this.siteSettings.tag_subscription_level1_color, "#e5b000"); }
+  get _c2() { return safeColor(this.siteSettings.tag_subscription_level2_color, "#cc5500"); }
+
+  get rootStyle() {
+    const c1 = this._c1, c2 = this._c2;
+    return htmlSafe(
+      `--tsub-c1:${c1};--tsub-c1-bg:${hexToRgba(c1, 0.18)};--tsub-c1-bd:${hexToRgba(c1, 0.5)};` +
+      `--tsub-c2:${c2};--tsub-c2-bg:${hexToRgba(c2, 0.18)};--tsub-c2-bd:${hexToRgba(c2, 0.5)};`
+    );
   }
 
-  get levelConfig() {
-    return LEVEL_MAP[this.notificationLevel] || LEVEL_MAP.watching_first_post;
+  get level1Label() {
+    return this.siteSettings.tag_subscription_level1_label || "Уведомление о новой теме с тегом";
+  }
+  get level2Label() {
+    return this.siteSettings.tag_subscription_level2_label || "Уведомление о каждом ответе в теме с тегом";
+  }
+  get hintText() {
+    return this.siteSettings.tag_subscription_hint ||
+      "Нажмите 1 раз — только новые темы, 2 раза — все ответы, 3 раза — отменить";
   }
 
-  get levelLabel() {
-    const labels = {
-      watching_first_post: "Наблюдение (первый пост)",
-      watching: "Наблюдение (все ответы)",
-      tracking: "Отслеживание",
-    };
-    return labels[this.notificationLevel] || this.notificationLevel;
-  }
+  get totalSelected() { return this.selectedLevels.size; }
 
   constructor() {
     super(...arguments);
@@ -67,25 +88,20 @@ export default class TagSubscriptions extends Component {
     if (this._displayNameCache[slug] !== undefined) {
       return this._displayNameCache[slug];
     }
-
     const probe = document.createElement("a");
     probe.className = "discourse-tag";
     probe.dataset.tagName = slug;
     probe.style.cssText =
       "position:absolute;left:-9999px;top:-9999px;pointer-events:none;visibility:hidden;";
     document.body.appendChild(probe);
-
     const before = window.getComputedStyle(probe, "::before");
     let display = before?.content;
-
     document.body.removeChild(probe);
-
     if (display && display !== "none" && display !== "normal" && display !== '""') {
       display = display.replace(/^["']|["']$/g, "");
       this._displayNameCache[slug] = display;
       return display;
     }
-
     this._displayNameCache[slug] = slug;
     return slug;
   }
@@ -94,21 +110,11 @@ export default class TagSubscriptions extends Component {
 
   _hookSaveButton() {
     const btn = document.querySelector(".save-button .save-changes");
-    if (btn) {
-      this._attachToButton(btn);
-      return;
-    }
+    if (btn) { this._attachToButton(btn); return; }
     this._observer = new MutationObserver(() => {
-      if (this.isDestroying || this.isDestroyed) {
-        this._observer.disconnect();
-        return;
-      }
+      if (this.isDestroying || this.isDestroyed) { this._observer.disconnect(); return; }
       const b = document.querySelector(".save-button .save-changes");
-      if (b) {
-        this._observer.disconnect();
-        this._observer = null;
-        this._attachToButton(b);
-      }
+      if (b) { this._observer.disconnect(); this._observer = null; this._attachToButton(b); }
     });
     this._observer.observe(document.body, { childList: true, subtree: true });
   }
@@ -121,10 +127,7 @@ export default class TagSubscriptions extends Component {
   }
 
   _unhookSaveButton() {
-    if (this._observer) {
-      this._observer.disconnect();
-      this._observer = null;
-    }
+    if (this._observer) { this._observer.disconnect(); this._observer = null; }
     if (this._saveBtn && this._saveHandler) {
       this._saveBtn.removeEventListener("click", this._saveHandler, true);
     }
@@ -139,27 +142,25 @@ export default class TagSubscriptions extends Component {
     try {
       const username = this.args.outletArgs?.model?.username;
 
-      const [tagsResp, userResp] = await Promise.all([
-        ajax("/tags.json"),
+      const [groupsResp, userResp] = await Promise.all([
+        ajax("/tag-subscriptions/tag-groups.json"),
         ajax(`/u/${username}.json`),
       ]);
 
-      const rawGroups = tagsResp.extras?.tag_groups || [];
-      this.tagGroups = this.buildGroups(rawGroups);
+      this.tagGroups = this.buildGroups(groupsResp.tag_groups || []);
 
       const u = userResp.user || {};
-      const toNames = (arr) =>
-        (arr || []).map((t) => (typeof t === "string" ? t : t.name));
+      const toNames = (arr) => (arr || []).map((t) => (typeof t === "string" ? t : t.name));
 
-      // Строим карту {тег: поле} для сохранения оригинальных уровней
-      const fieldMap = {};
-      for (const field of ALL_TAG_FIELDS) {
+      const levelMap = new Map();
+      for (const [field, level] of Object.entries(FIELD_TO_LEVEL)) {
         for (const name of toNames(u[field])) {
-          fieldMap[name] = field;
+          levelMap.set(name, level);
         }
       }
-      this._initialFieldMap = fieldMap;
-      this.selectedNames = new Set(Object.keys(fieldMap));
+      this._initialLevelMap = new Map(levelMap);
+      this.selectedLevels   = new Map(levelMap);
+      this._autoUpdateParentTags();
     } catch (e) {
       console.error("[tsub] ошибка загрузки:", e);
     } finally {
@@ -169,45 +170,65 @@ export default class TagSubscriptions extends Component {
 
   buildGroups(rawGroups) {
     const configured = (this.siteSettings.tag_subscription_groups || "")
-      .split("|")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
+      .split("|").map((s) => s.trim()).filter(Boolean);
     if (!configured.length) return [];
 
     return rawGroups
       .filter((g) => configured.includes(g.name))
-      .map((g) => ({ name: g.name, tags: g.tags || [] }))
+      .map((g) => ({
+        name:          g.name,
+        tags:          (g.tags || []).map((t) => ({ name: t.name })),
+        parentTagName: g.parent_tag?.[0]?.name || null,
+      }))
       .filter((g) => g.tags.length > 0);
+  }
+
+  // ─── Авто-выбор родительского тега ────────────────────────────────────────
+
+  _autoUpdateParentTags() {
+    const next = new Map(this.selectedLevels);
+    let changed = false;
+
+    for (const group of this.tagGroups) {
+      if (!group.parentTagName) continue;
+      const allSelected    = group.tags.every((t) => next.has(t.name));
+      const parentSelected = next.has(group.parentTagName);
+
+      if (allSelected && !parentSelected) {
+        next.set(group.parentTagName, "watching_first_post");
+        changed = true;
+      } else if (!allSelected && parentSelected) {
+        next.delete(group.parentTagName);
+        changed = true;
+      }
+    }
+
+    if (changed) this.selectedLevels = next;
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  @action isSelected(name) {
-    return this.selectedNames.has(name);
-  }
-  @action isExpanded(name) {
-    return this.expandedGroups.has(name);
+  @action isSelected(name) { return this.selectedLevels.has(name); }
+  @action isExpanded(name) { return this.expandedGroups.has(name); }
+
+  @action
+  tagClass(name) {
+    const level = this.selectedLevels.get(name);
+    if (!level) return "";
+    return level === "watching" ? "sel-2" : "sel-1";
   }
 
   @action
   sectionState(group) {
-    const subSel = group.tags.filter((t) =>
-      this.selectedNames.has(t.name)
-    ).length;
-    const total = group.tags.length;
-    if (subSel === 0) return "none";
-    if (subSel === total) return "all";
+    const count = group.tags.filter((t) => this.selectedLevels.has(t.name)).length;
+    if (count === 0) return "none";
+    if (count === group.tags.length) return "all";
     return "some";
   }
 
   @action
   subTagSelectedCount(group) {
-    return group.tags.filter((t) => this.selectedNames.has(t.name)).length;
-  }
-
-  get totalSelected() {
-    return this.selectedNames.size;
+    return group.tags.filter((t) => this.selectedLevels.has(t.name)).length;
   }
 
   // ─── Действия ─────────────────────────────────────────────────────────────
@@ -221,64 +242,60 @@ export default class TagSubscriptions extends Component {
 
   @action
   toggleTag(name) {
-    const next = new Set(this.selectedNames);
-    next.has(name) ? next.delete(name) : next.add(name);
-    this.selectedNames = next;
+    const next    = new Map(this.selectedLevels);
+    const current = next.get(name);
+    if (!current)                          next.set(name, "watching_first_post");
+    else if (current === "watching_first_post") next.set(name, "watching");
+    else                                   next.delete(name);
+    this.selectedLevels = next;
+    this._autoUpdateParentTags();
   }
 
   @action
   toggleSection(group) {
-    const next = new Set(this.selectedNames);
+    const next        = new Map(this.selectedLevels);
     const allSelected = group.tags.every((t) => next.has(t.name));
     if (allSelected) {
       group.tags.forEach((t) => next.delete(t.name));
     } else {
-      group.tags.forEach((t) => next.add(t.name));
+      group.tags.forEach((t) => { if (!next.has(t.name)) next.set(t.name, "watching_first_post"); });
     }
-    this.selectedNames = next;
+    this.selectedLevels = next;
+    this._autoUpdateParentTags();
   }
 
   @action
   deselectAllInGroup(group) {
-    const next = new Set(this.selectedNames);
+    const next = new Map(this.selectedLevels);
     group.tags.forEach((t) => next.delete(t.name));
-    this.selectedNames = next;
+    this.selectedLevels = next;
+    this._autoUpdateParentTags();
   }
 
   // ─── Сохранение ───────────────────────────────────────────────────────────
 
   async _doSave() {
     try {
-      const username = this.args.outletArgs?.model?.username;
+      const username  = this.args.outletArgs?.model?.username;
+      const allManaged = new Set(this.tagGroups.flatMap((g) => g.tags.map((t) => t.name)));
 
-      const allManaged = new Set(
-        this.tagGroups.flatMap((g) => g.tags.map((t) => t.name))
-      );
-      const saveField = this.levelConfig.saveField;
+      const tagLists = { watching_first_post_tags: [], watched_tags: [], tracked_tags: [] };
 
-      // Для каждого поля собираем итоговый список тегов
-      const tagLists = {};
-      for (const field of ALL_TAG_FIELDS) {
-        tagLists[field] = [];
+      // Управляемые выбранные теги → по уровню
+      for (const [name, level] of this.selectedLevels) {
+        if (!allManaged.has(name)) continue;
+        (tagLists[LEVEL_TO_FIELD[level] || "watching_first_post_tags"]).push(name);
       }
 
-      // Управляемые выбранные теги → в saveField
-      for (const name of this.selectedNames) {
-        if (allManaged.has(name)) {
-          tagLists[saveField].push(name);
-        }
-      }
-
-      // Неуправляемые теги → обратно в их оригинальные поля
-      for (const [name, origField] of Object.entries(this._initialFieldMap)) {
-        if (!allManaged.has(name)) {
-          tagLists[origField].push(name);
-        }
+      // Неуправляемые теги → в их оригинальные поля
+      for (const [name, level] of this._initialLevelMap) {
+        if (allManaged.has(name)) continue;
+        (tagLists[LEVEL_TO_FIELD[level] || "watching_first_post_tags"]).push(name);
       }
 
       const params = new URLSearchParams();
-      for (const field of ALL_TAG_FIELDS) {
-        params.set(field, tagLists[field].join(","));
+      for (const [field, tags] of Object.entries(tagLists)) {
+        params.set(field, tags.join(","));
       }
       params.set("muted_tags", "");
 
@@ -288,21 +305,17 @@ export default class TagSubscriptions extends Component {
         data: params.toString(),
       });
 
-      // Обновляем карту под новое состояние
-      const newMap = {};
-      for (const name of this.selectedNames) {
-        if (allManaged.has(name)) {
-          newMap[name] = saveField;
-        }
+      // Обновляем initial map
+      const newMap = new Map();
+      for (const [name, level] of this.selectedLevels) {
+        if (allManaged.has(name)) newMap.set(name, level);
       }
-      for (const [name, origField] of Object.entries(this._initialFieldMap)) {
-        if (!allManaged.has(name)) {
-          newMap[name] = origField;
-        }
+      for (const [name, level] of this._initialLevelMap) {
+        if (!allManaged.has(name)) newMap.set(name, level);
       }
-      this._initialFieldMap = newMap;
+      this._initialLevelMap = newMap;
 
-      console.log("[tsub] сохранено, уровень:", this.notificationLevel);
+      console.log("[tsub] сохранено");
     } catch (e) {
       console.error("[tsub] ошибка сохранения:", e);
     }

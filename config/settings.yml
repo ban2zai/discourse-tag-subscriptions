@@ -6,17 +6,45 @@ plugins:
     allow_any: true
     default: ""
     description:
-      en: "Pipe-separated names of tag groups to show in the subscription UI (e.g. БГУ Разделы|ЗГУ Разделы)"
-      ru: "Имена групп тегов через | для отображения в UI подписок (например: БГУ Разделы|ЗГУ Разделы)"
+      en: "Pipe-separated names of tag groups to show in the subscription UI"
+      ru: "Имена групп тегов через | для отображения в UI подписок"
 
-  tag_subscription_notification_level:
+  tag_subscription_level1_color:
     client: true
-    type: enum
-    default: watching_first_post
-    choices:
-      - watching_first_post
-      - watching
-      - tracking
+    type: string
+    default: "#e5b000"
     description:
-      en: "Notification level applied when subscribing to tags: watching_first_post = new topics only, watching = all replies, tracking = unread count"
-      ru: "Уровень уведомлений при подписке на теги: watching_first_post = новые темы, watching = все ответы, tracking = счётчик непрочитанных"
+      en: "Color (hex) for watching_first_post level"
+      ru: "Цвет (hex) для уровня watching_first_post"
+
+  tag_subscription_level2_color:
+    client: true
+    type: string
+    default: "#cc5500"
+    description:
+      en: "Color (hex) for watching level"
+      ru: "Цвет (hex) для уровня watching"
+
+  tag_subscription_level1_label:
+    client: true
+    type: string
+    default: "Уведомление о новой теме с тегом"
+    description:
+      en: "Legend label for watching_first_post level"
+      ru: "Подпись в легенде для уровня watching_first_post"
+
+  tag_subscription_level2_label:
+    client: true
+    type: string
+    default: "Уведомление о каждом ответе в теме с тегом"
+    description:
+      en: "Legend label for watching level"
+      ru: "Подпись в легенде для уровня watching"
+
+  tag_subscription_hint:
+    client: true
+    type: string
+    default: "Нажмите 1 раз — только новые темы, 2 раза — все ответы, 3 раза — отменить"
+    description:
+      en: "Hint text explaining click cycling"
+      ru: "Текст подсказки о переключении уровня кликом"
