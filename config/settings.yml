@@ -1,5 +1,6 @@
 plugins:
   tag_subscription_groups:
+    client: true
     type: list
     list_type: simple
     allow_any: true
@@ -9,6 +10,7 @@ plugins:
       ru: "Имена групп тегов через | для отображения в UI подписок (например: БГУ Разделы|ЗГУ Разделы)"
 
   tag_subscription_notification_level:
+    client: true
     type: enum
     default: watching_first_post
     choices:
