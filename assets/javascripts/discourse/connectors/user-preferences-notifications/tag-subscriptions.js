@@ -177,7 +177,7 @@ export default class TagSubscriptions extends Component {
       .filter((g) => configured.includes(g.name))
       .map((g) => ({
         name:          g.name,
-        tags:          (g.tags || []).map((t) => ({ name: t.name })),
+        tags:          (g.tags || []).map((t) => ({ name: t.name })).sort((a, b) => a.name.localeCompare(b.name, "ru")),
         parentTagName: g.parent_tag?.[0]?.name || null,
       }))
       .filter((g) => g.tags.length > 0);

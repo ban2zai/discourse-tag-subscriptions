@@ -94,6 +94,9 @@
   text-align: left;
 }
 .tsub-group-name-btn:hover {
+  background: transparent;
+}
+.tsub-group-header:has(.tsub-group-name-btn:hover) {
   background: var(--primary-low);
 }
 .tsub-group-name {
@@ -113,7 +116,7 @@
   margin-right: 0.5em;
   transition: background 0.1s, color 0.1s;
 }
-.tsub-group-name-btn:hover + .tsub-group-count {
+.tsub-group-header:has(.tsub-group-name-btn:hover) .tsub-group-count {
   background: var(--primary-medium);
   color: var(--secondary);
 }
@@ -127,7 +130,7 @@
   padding: 0;
   background: none;
   border: none;
-  border-left: 1px solid var(--primary-low);
+  border-left: 1px solid var(--primary-medium);
   cursor: pointer;
   color: var(--primary-high);
   transition: background 0.1s, color 0.1s;
