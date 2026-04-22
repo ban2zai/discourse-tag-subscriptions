@@ -1,0 +1,256 @@
+{{! Inline styles — гарантируют применение даже если SCSS не подхватился }}
+<style>
+.tsub-root {
+  max-width: 700px;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--primary-low);
+}
+.tsub-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  color: var(--primary);
+}
+.tsub-hint {
+  color: var(--primary-medium);
+  font-size: var(--font-down-1);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.tsub-total {
+  font-size: var(--font-down-1);
+  color: var(--primary-medium);
+  margin-bottom: 0.75rem;
+}
+.tsub-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--primary-medium);
+  padding: 1rem 0;
+}
+.tsub-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--primary-low);
+  border-top-color: var(--tertiary);
+  border-radius: 50%;
+  animation: tsub-spin 0.7s linear infinite;
+}
+@keyframes tsub-spin { to { transform: rotate(360deg); } }
+
+.tsub-group {
+  border: 2px solid var(--primary-low);
+  border-radius: 0.3em;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tsub-group.some {
+  border-color: var(--tertiary-medium);
+  box-shadow: 0 0 0 1px var(--tertiary-very-low);
+}
+.tsub-group.all {
+  border-color: var(--tertiary);
+  box-shadow: 0 0 6px 0 var(--tertiary-very-low);
+}
+
+.tsub-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--primary-very-low);
+}
+.tsub-group-name-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0.5em 0.65em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.tsub-group-name-btn:hover {
+  background: var(--primary-low);
+}
+.tsub-group-name {
+  font-weight: 600;
+  font-size: var(--font-0);
+  color: var(--primary);
+}
+.tsub-group-count {
+  font-size: var(--font-down-2);
+  color: var(--primary-medium);
+  background: var(--primary-low);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: 0.5em;
+}
+.tsub-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  align-self: stretch;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--primary-low);
+  cursor: pointer;
+  color: var(--primary-high);
+  transition: background 0.1s, color 0.1s;
+}
+.tsub-expand-btn:hover {
+  background: var(--primary-low);
+  color: var(--tertiary);
+}
+.tsub-chevron {
+  width: 1.25em;
+  height: 1.25em;
+  display: block;
+}
+
+.tsub-group-body {
+  padding: 0.6rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--primary-low);
+}
+.tsub-bulk {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+.tsub-bulk-btn {
+  padding: 0.25em 0.65em;
+  font-size: var(--font-down-2);
+  border: 1px solid var(--primary-low);
+  border-radius: 0.3em;
+  background: none;
+  cursor: pointer;
+  color: var(--primary-medium);
+  transition: background 0.1s, color 0.1s;
+}
+.tsub-bulk-btn:hover {
+  background: var(--primary-low);
+  color: var(--primary);
+}
+.tsub-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 0.35rem;
+}
+.tsub-tag {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.3em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-size: var(--font-down-1);
+  line-height: 1.4;
+  transition: background 0.1s, border-color 0.1s;
+}
+.tsub-tag input {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--tertiary);
+}
+.tsub-tag:hover {
+  background: var(--primary-very-low);
+}
+.tsub-tag.selected {
+  background: var(--tertiary-very-low);
+  border-color: var(--tertiary-low);
+}
+</style>
+
+<div class="tsub-root">
+  <h3 class="tsub-title">Подписки на теги</h3>
+  <p class="tsub-hint">
+    При появлении новой темы с выбранным тегом вы получите уведомление.
+    Уровень: <strong>{{this.levelLabel}}</strong>
+  </p>
+
+  {{#if this.isLoading}}
+    <div class="tsub-loading">
+      <div class="tsub-spinner"></div>
+      Загрузка…
+    </div>
+
+  {{else if this.tagGroups.length}}
+
+    <div class="tsub-total">
+      Выбрано: <strong>{{this.totalSelected}}</strong>
+    </div>
+
+    {{#each this.tagGroups as |group|}}
+      <div class="tsub-group {{this.sectionState group}}">
+
+        <div class="tsub-group-header">
+          <button
+            type="button"
+            class="tsub-group-name-btn"
+            title="Выбрать/снять все теги раздела"
+            {{on "click" (fn this.toggleSection group)}}
+          >
+            <span class="tsub-group-name">{{this.displayName group.name}}</span>
+          </button>
+
+          <span class="tsub-group-count">
+            {{this.subTagSelectedCount group}}/{{group.tags.length}}
+          </span>
+
+          <button
+            type="button"
+            class="tsub-expand-btn"
+            title="Развернуть/свернуть"
+            {{on "click" (fn this.toggleExpanded group.name)}}
+          >
+            {{#if (this.isExpanded group.name)}}
+              <svg class="tsub-chevron" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+              </svg>
+            {{else}}
+              <svg class="tsub-chevron" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/>
+              </svg>
+            {{/if}}
+          </button>
+        </div>
+
+        {{#if (this.isExpanded group.name)}}
+          <div class="tsub-group-body">
+            <div class="tsub-bulk">
+              <button type="button" class="tsub-bulk-btn"
+                {{on "click" (fn this.deselectAllInGroup group)}}>
+                Сбросить
+              </button>
+            </div>
+            <div class="tsub-tags-grid">
+              {{#each group.tags as |tag|}}
+                <label class="tsub-tag {{if (this.isSelected tag.name) 'selected'}}">
+                  <input
+                    type="checkbox"
+                    checked={{this.isSelected tag.name}}
+                    {{on "change" (fn this.toggleTag tag.name)}}
+                  />
+                  <span>{{this.displayName tag.name}}</span>
+                </label>
+              {{/each}}
+            </div>
+          </div>
+        {{/if}}
+
+      </div>
+    {{/each}}
+
+  {{else}}
+    <p style="color: var(--danger)">Группы тегов не настроены или недоступны. Проверьте настройки плагина.</p>
+  {{/if}}
+
+</div>
