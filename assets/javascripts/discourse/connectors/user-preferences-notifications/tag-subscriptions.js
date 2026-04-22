@@ -68,6 +68,24 @@ export default class TagSubscriptions extends Component {
       "Нажмите 1 раз — только новые темы, 2 раза — все ответы, 3 раза — отменить";
   }
 
+  get pinnedTags() {
+    return (this.siteSettings.tag_subscription_pinned_tags || "")
+      .split("|").map((s) => s.trim()).filter(Boolean);
+  }
+
+  get pinnedSelectedCount() {
+    return this.pinnedTags.filter((name) => this.selectedLevels.has(name)).length;
+  }
+
+  get pinnedSectionState() {
+    const total = this.pinnedTags.length;
+    if (!total) return "none";
+    const count = this.pinnedSelectedCount;
+    if (count === 0) return "none";
+    if (count === total) return "all";
+    return "some";
+  }
+
   get totalSelected() { return this.selectedLevels.size; }
 
   constructor() {
@@ -277,7 +295,10 @@ export default class TagSubscriptions extends Component {
   async _doSave() {
     try {
       const username  = this.args.outletArgs?.model?.username;
-      const allManaged = new Set(this.tagGroups.flatMap((g) => g.tags.map((t) => t.name)));
+      const allManaged = new Set([
+        ...this.tagGroups.flatMap((g) => g.tags.map((t) => t.name)),
+        ...this.pinnedTags,
+      ]);
 
       const tagLists = { watching_first_post_tags: [], watched_tags: [], tracked_tags: [] };
 

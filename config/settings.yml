@@ -41,6 +41,14 @@ plugins:
       en: "Legend label for watching level"
       ru: "Подпись в легенде для уровня watching"
 
+  tag_subscription_pinned_tags:
+    client: true
+    type: string
+    default: ""
+    description:
+      en: "Pipe-separated tag slugs to show at the top before all groups"
+      ru: "Теги через | для отображения вверху перед всеми группами"
+
   tag_subscription_hint:
     client: true
     type: string

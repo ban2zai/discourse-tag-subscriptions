@@ -77,6 +77,13 @@
   box-shadow: 0 0 6px 0 var(--tertiary-very-low);
 }
 
+.tsub-pinned-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: var(--font-0);
+  color: var(--primary);
+  padding: 0.5em 0.65em;
+}
 .tsub-group-header {
   display: flex;
   align-items: center;
@@ -242,6 +249,30 @@
     <div class="tsub-total">
       Выбрано: <strong>{{this.totalSelected}}</strong>
     </div>
+
+    {{#if this.pinnedTags.length}}
+      <div class="tsub-group {{this.pinnedSectionState}}">
+        <div class="tsub-group-header">
+          <span class="tsub-pinned-title">Иные теги</span>
+          <span class="tsub-group-count">
+            {{this.pinnedSelectedCount}}/{{this.pinnedTags.length}}
+          </span>
+        </div>
+        <div class="tsub-group-body">
+          <div class="tsub-tags-grid">
+            {{#each this.pinnedTags as |tagName|}}
+              <div class="tsub-tag {{this.tagClass tagName}}"
+                   role="button"
+                   tabindex="0"
+                   {{on "click" (fn this.toggleTag tagName)}}>
+                <span class="tsub-tag-dot"></span>
+                <span>{{this.displayName tagName}}</span>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    {{/if}}
 
     {{#each this.tagGroups as |group|}}
       <div class="tsub-group {{this.sectionState group}}">
