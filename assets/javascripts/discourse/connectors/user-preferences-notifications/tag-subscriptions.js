@@ -141,7 +141,6 @@ export default class TagSubscriptions extends Component {
     this._saveBtn = btn;
     this._saveHandler = () => this._doSave();
     btn.addEventListener("click", this._saveHandler, true);
-    console.log("[tsub] хук на .save-changes установлен");
   }
 
   _unhookSaveButton() {
@@ -336,7 +335,6 @@ export default class TagSubscriptions extends Component {
       }
       this._initialLevelMap = newMap;
 
-      console.log("[tsub] сохранено");
     } catch (e) {
       console.error("[tsub] ошибка сохранения:", e);
     }
