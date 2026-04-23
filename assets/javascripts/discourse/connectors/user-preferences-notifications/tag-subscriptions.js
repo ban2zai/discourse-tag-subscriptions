@@ -63,8 +63,8 @@ export default class TagSubscriptions extends Component {
     const sq = (color) =>
       `<span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${color};vertical-align:middle;margin:0 3px 1px;"></span>`;
     return htmlSafe(
-      `Кликните по тегу чтобы указать уровень уведомления. ` +
-      `Один клик ${sq(this._c1)}&hairsp;— уведомление о новых темах. ` +
+      `Кликните по тегу чтобы указать уровень уведомления.<br>` +
+      `Один клик ${sq(this._c1)}&hairsp;— уведомление о новых темах.<br>` +
       `Два клика ${sq(this._c2)}&hairsp;— уведомление о каждом новом ответе в теме с тегом.`
     );
   }
