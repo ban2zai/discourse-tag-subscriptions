@@ -69,6 +69,10 @@ export default class TagSubscriptions extends Component {
       "Нажмите 1 раз — только новые темы, 2 раза — все ответы, 3 раза — отменить";
   }
 
+  get siteEnabled() {
+    return this.siteSettings.tag_subscriptions_enabled !== false;
+  }
+
   get pinnedTags() {
     return (this.siteSettings.tag_subscription_pinned_tags || "")
       .split("|").map((s) => s.trim()).filter(Boolean);

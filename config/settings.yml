@@ -1,4 +1,12 @@
 plugins:
+  tag_subscriptions_enabled:
+    default: true
+    client: true
+    type: bool
+    description:
+      en: "Enable tag subscriptions UI in user preferences"
+      ru: "Включить UI подписок на теги в настройках пользователя"
+
   tag_subscription_groups:
     client: true
     type: list

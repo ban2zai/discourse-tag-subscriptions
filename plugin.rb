@@ -4,6 +4,7 @@
 # about: UI управления подписками на теги в настройках пользователя
 # version: 1.0.0
 # authors: ban2zai
+# enabled_site_setting: tag_subscriptions_enabled
 
 after_initialize do
   class ::TagSubscriptionsController < ::ApplicationController

@@ -70,6 +70,3 @@ hooks:
 
 **JavaScript/Handlebars** — Glimmer-компонент в outlet `user-preferences-notifications`. Загружает группы через кастомный эндпоинт, текущие подписки через `/u/:username.json`. При сохранении делает `PUT /u/:username.json` только с тег-полями, не трогая остальные настройки пользователя.
 
-## Связанные плагины
-
-[discourse-tag-change-notifications](https://github.com/ban2zai/discourse-tag-change-notifications) — отправляет уведомления когда тег **добавляют к существующей теме** (стандартный Discourse уведомляет только при создании новой темы).
