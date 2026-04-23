@@ -10,11 +10,14 @@ after_initialize do
     requires_login
 
     def tag_groups
-      user_group_ids = current_user.group_ids.to_set << 0 # 0 = everyone
-
-      groups = TagGroup.includes(:tags, :tag_group_permissions).select do |tg|
-        perm_ids = tg.tag_group_permissions.map(&:group_id)
-        perm_ids.empty? || perm_ids.any? { |id| user_group_ids.include?(id) }
+      groups = if current_user.staff?
+        TagGroup.includes(:tags, :tag_group_permissions).to_a
+      else
+        user_group_ids = current_user.group_ids.to_set << 0 # 0 = everyone
+        TagGroup.includes(:tags, :tag_group_permissions).select do |tg|
+          perm_ids = tg.tag_group_permissions.map(&:group_id)
+          perm_ids.empty? || perm_ids.any? { |id| user_group_ids.include?(id) }
+        end
       end
 
       parent_tag_ids = groups.filter_map(&:parent_tag_id)

@@ -6,10 +6,31 @@
   padding-top: 1.25rem;
   border-top: 1px solid var(--primary-low);
 }
+.tsub-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.tsub-toggle-btn {
+  padding: 0.2em 0.7em;
+  font-size: var(--font-down-2);
+  border: 1px solid var(--primary-low);
+  border-radius: 0.3em;
+  background: none;
+  cursor: pointer;
+  color: var(--primary-medium);
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+.tsub-toggle-btn:hover {
+  background: var(--primary-low);
+  color: var(--primary);
+}
 .tsub-title {
   font-size: 1.05rem;
   font-weight: 700;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0;
   color: var(--primary);
 }
 .tsub-legend {
@@ -224,7 +245,14 @@
 </style>
 
 <div class="tsub-root" style={{this.rootStyle}}>
-  <h3 class="tsub-title">Подписки на теги</h3>
+  <div class="tsub-header-row">
+    <h3 class="tsub-title">Подписки на теги</h3>
+    <button type="button" class="tsub-toggle-btn" {{on "click" this.toggleEnabled}}>
+      {{#if this.isEnabled}}Скрыть{{else}}Показать{{/if}}
+    </button>
+  </div>
+
+  {{#if this.isEnabled}}
 
   <div class="tsub-legend">
     <span class="tsub-legend-item">
@@ -337,5 +365,7 @@
   {{else}}
     <p style="color: var(--danger)">Группы тегов не настроены или недоступны. Проверьте настройки плагина.</p>
   {{/if}}
+
+  {{/if}}{{! isEnabled }}
 
 </div>

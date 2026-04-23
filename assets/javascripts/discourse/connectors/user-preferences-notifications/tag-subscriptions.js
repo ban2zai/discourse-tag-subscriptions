@@ -37,6 +37,7 @@ export default class TagSubscriptions extends Component {
   @tracked selectedLevels = new Map(); // tagName → "watching_first_post" | "watching"
   @tracked expandedGroups = new Set();
   @tracked isLoading    = true;
+  @tracked isEnabled    = localStorage.getItem("tsub_enabled") !== "false";
 
   _initialLevelMap = new Map(); // tagName → level (все поля, включая неуправляемые)
   _saveHandler  = null;
@@ -190,14 +191,16 @@ export default class TagSubscriptions extends Component {
       .split("|").map((s) => s.trim()).filter(Boolean);
     if (!configured.length) return [];
 
-    return rawGroups
-      .filter((g) => configured.includes(g.name))
+    const byName = Object.fromEntries(rawGroups.map((g) => [g.name, g]));
+
+    return configured
+      .map((name) => byName[name])
+      .filter((g) => g && (g.tags || []).length > 0)
       .map((g) => ({
         name:          g.name,
-        tags:          (g.tags || []).map((t) => ({ name: t.name })).sort((a, b) => a.name.localeCompare(b.name, "ru")),
+        tags:          g.tags.map((t) => ({ name: t.name })).sort((a, b) => a.name.localeCompare(b.name, "ru")),
         parentTagName: g.parent_tag?.[0]?.name || null,
-      }))
-      .filter((g) => g.tags.length > 0);
+      }));
   }
 
   // ─── Авто-выбор родительского тега ────────────────────────────────────────
@@ -224,6 +227,12 @@ export default class TagSubscriptions extends Component {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  @action
+  toggleEnabled() {
+    this.isEnabled = !this.isEnabled;
+    localStorage.setItem("tsub_enabled", String(this.isEnabled));
+  }
 
   @action isSelected(name) { return this.selectedLevels.has(name); }
   @action isExpanded(name) { return this.expandedGroups.has(name); }
