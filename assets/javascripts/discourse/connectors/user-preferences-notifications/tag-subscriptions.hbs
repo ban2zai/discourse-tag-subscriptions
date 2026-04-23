@@ -113,6 +113,12 @@
   font-size: var(--font-0);
   color: var(--primary);
 }
+.tsub-group-parent {
+  font-size: var(--font-down-2);
+  font-weight: 400;
+  color: var(--primary-medium);
+  margin-left: 0.4em;
+}
 .tsub-group-count {
   font-size: var(--font-down-2);
   color: var(--primary-medium);
@@ -283,6 +289,9 @@
             {{on "click" (fn this.toggleSection group)}}
           >
             <span class="tsub-group-name">{{this.displayName group.name}}</span>
+            {{#if group.parentTagName}}
+              <span class="tsub-group-parent">({{this.displayName group.parentTagName}})</span>
+            {{/if}}
           </button>
 
           <span class="tsub-group-count">

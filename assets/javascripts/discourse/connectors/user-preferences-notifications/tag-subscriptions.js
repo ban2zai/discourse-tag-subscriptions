@@ -297,10 +297,14 @@ export default class TagSubscriptions extends Component {
   toggleSection(group) {
     const next        = new Map(this.selectedLevels);
     const allSelected = group.tags.every((t) => next.has(t.name));
-    if (allSelected) {
+    const allWatching = allSelected && group.tags.every((t) => next.get(t.name) === "watching");
+
+    if (allWatching) {
       group.tags.forEach((t) => next.delete(t.name));
+    } else if (allSelected) {
+      group.tags.forEach((t) => next.set(t.name, "watching"));
     } else {
-      group.tags.forEach((t) => { if (!next.has(t.name)) next.set(t.name, "watching_first_post"); });
+      group.tags.forEach((t) => next.set(t.name, "watching_first_post"));
     }
     this.selectedLevels = next;
     this._autoUpdateParentTags();
