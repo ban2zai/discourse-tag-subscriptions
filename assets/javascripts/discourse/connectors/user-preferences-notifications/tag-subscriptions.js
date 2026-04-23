@@ -37,7 +37,6 @@ export default class TagSubscriptions extends Component {
   @tracked selectedLevels = new Map(); // tagName → "watching_first_post" | "watching"
   @tracked expandedGroups = new Set();
   @tracked isLoading    = true;
-  @tracked isEnabled    = localStorage.getItem("tsub_enabled") !== "false";
 
   _initialLevelMap = new Map(); // tagName → level (все поля, включая неуправляемые)
   _saveHandler  = null;
@@ -58,15 +57,24 @@ export default class TagSubscriptions extends Component {
     );
   }
 
-  get level1Label() {
-    return this.siteSettings.tag_subscription_level1_label || "Уведомление о новой теме с тегом";
+  get hintHtml() {
+    const custom = (this.siteSettings.tag_subscription_hint || "").trim();
+    if (custom) return htmlSafe(custom);
+    const sq = (color) =>
+      `<span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${color};vertical-align:middle;margin:0 3px 1px;"></span>`;
+    return htmlSafe(
+      `Кликните по тегу чтобы указать уровень уведомления. ` +
+      `Один клик ${sq(this._c1)}&hairsp;— уведомление о новых темах. ` +
+      `Два клика ${sq(this._c2)}&hairsp;— уведомление о каждом новом ответе в теме с тегом.`
+    );
   }
-  get level2Label() {
-    return this.siteSettings.tag_subscription_level2_label || "Уведомление о каждом ответе в теме с тегом";
+
+  get helpTopicUrl() {
+    return this.siteSettings.tag_subscription_help_topic_url || "";
   }
-  get hintText() {
-    return this.siteSettings.tag_subscription_hint ||
-      "Нажмите 1 раз — только новые темы, 2 раза — все ответы, 3 раза — отменить";
+
+  get helpLinkLabel() {
+    return this.siteSettings.tag_subscription_help_link_label || "Инструкция для уведомлений";
   }
 
   get siteEnabled() {
@@ -231,12 +239,6 @@ export default class TagSubscriptions extends Component {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  @action
-  toggleEnabled() {
-    this.isEnabled = !this.isEnabled;
-    localStorage.setItem("tsub_enabled", String(this.isEnabled));
-  }
 
   @action isSelected(name) { return this.selectedLevels.has(name); }
   @action isExpanded(name) { return this.expandedGroups.has(name); }

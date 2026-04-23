@@ -33,22 +33,6 @@ plugins:
       en: "Color (hex) for watching level"
       ru: "Цвет (hex) для уровня watching"
 
-  tag_subscription_level1_label:
-    client: true
-    type: string
-    default: "Уведомление о новой теме с тегом"
-    description:
-      en: "Legend label for watching_first_post level"
-      ru: "Подпись в легенде для уровня watching_first_post"
-
-  tag_subscription_level2_label:
-    client: true
-    type: string
-    default: "Уведомление о каждом ответе в теме с тегом"
-    description:
-      en: "Legend label for watching level"
-      ru: "Подпись в легенде для уровня watching"
-
   tag_subscription_pinned_tags:
     client: true
     type: string
@@ -57,10 +41,26 @@ plugins:
       en: "Pipe-separated tag slugs to show at the top before all groups"
       ru: "Теги через | для отображения вверху перед всеми группами"
 
+  tag_subscription_help_topic_url:
+    client: true
+    type: string
+    default: ""
+    description:
+      en: "URL to the topic with notification instructions (shown as a link above the hint)"
+      ru: "Ссылка на тему с инструкцией по уведомлениям (отображается над подсказкой)"
+
+  tag_subscription_help_link_label:
+    client: true
+    type: string
+    default: "Инструкция для уведомлений"
+    description:
+      en: "Label for the instructions link"
+      ru: "Текст ссылки на инструкцию"
+
   tag_subscription_hint:
     client: true
     type: string
-    default: "Нажмите 1 раз — только новые темы, 2 раза — все ответы, 3 раза — отменить"
+    default: ""
     description:
-      en: "Hint text explaining click cycling"
-      ru: "Текст подсказки о переключении уровня кликом"
+      en: "Custom hint text (leave empty for default with color squares)"
+      ru: "Свой текст подсказки (оставьте пустым для дефолтного с цветными квадратиками)"
