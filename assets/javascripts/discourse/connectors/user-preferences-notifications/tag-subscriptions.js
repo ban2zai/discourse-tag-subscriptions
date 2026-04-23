@@ -223,13 +223,18 @@ export default class TagSubscriptions extends Component {
 
     for (const group of this.tagGroups) {
       if (!group.parentTagName) continue;
-      const allSelected    = group.tags.every((t) => next.has(t.name));
-      const parentSelected = next.has(group.parentTagName);
+      const allSelected  = group.tags.every((t) => next.has(t.name));
+      const currentLevel = next.get(group.parentTagName);
 
-      if (allSelected && !parentSelected) {
-        next.set(group.parentTagName, "watching_first_post");
-        changed = true;
-      } else if (!allSelected && parentSelected) {
+      if (allSelected) {
+        const targetLevel = group.tags.every((t) => next.get(t.name) === "watching")
+          ? "watching"
+          : "watching_first_post";
+        if (currentLevel !== targetLevel) {
+          next.set(group.parentTagName, targetLevel);
+          changed = true;
+        }
+      } else if (currentLevel !== undefined) {
         next.delete(group.parentTagName);
         changed = true;
       }
@@ -254,6 +259,11 @@ export default class TagSubscriptions extends Component {
   sectionState(group) {
     const count = group.tags.filter((t) => this.selectedLevels.has(t.name)).length;
     if (count === 0) return "none";
+    if (group.parentTagName) {
+      const parentLevel = this.selectedLevels.get(group.parentTagName);
+      if (parentLevel === "watching") return "parent-sel-2";
+      if (parentLevel === "watching_first_post") return "parent-sel-1";
+    }
     if (count === group.tags.length) return "all";
     return "some";
   }
@@ -311,6 +321,7 @@ export default class TagSubscriptions extends Component {
       const username  = this.args.outletArgs?.model?.username;
       const allManaged = new Set([
         ...this.tagGroups.flatMap((g) => g.tags.map((t) => t.name)),
+        ...this.tagGroups.filter((g) => g.parentTagName).map((g) => g.parentTagName),
         ...this.pinnedTags,
       ]);
 
@@ -340,7 +351,6 @@ export default class TagSubscriptions extends Component {
         data: params.toString(),
       });
 
-      // Обновляем initial map
       const newMap = new Map();
       for (const [name, level] of this.selectedLevels) {
         if (allManaged.has(name)) newMap.set(name, level);
