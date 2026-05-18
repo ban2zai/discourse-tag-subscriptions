@@ -6,7 +6,6 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import icon from "discourse/helpers/d-icon";
-import dReplaceEmoji from "discourse/ui-kit/helpers/d-replace-emoji";
 import { schedule } from "@ember/runloop";
 import { htmlSafe } from "@ember/template";
 
@@ -299,11 +298,6 @@ export default class TagSubscriptions extends Component {
   @action
   categoryUsesEmoji(category) {
     return category?.style_type === "emoji" && category?.emoji;
-  }
-
-  @action
-  categoryEmojiToken(category) {
-    return `:${category.emoji}:`;
   }
 
   @action
@@ -801,7 +795,7 @@ export default class TagSubscriptions extends Component {
                       {{#if (this.categoryUsesIcon category)}}
                         {{icon category.icon class="tsub-category-prefix-icon"}}
                       {{else if (this.categoryUsesEmoji category)}}
-                        {{dReplaceEmoji (this.categoryEmojiToken category) class="tsub-category-emoji"}}
+                        <span class="tsub-category-emoji">{{category.emoji}}</span>
                       {{else}}
                         <span
                           class="tsub-category-square"
