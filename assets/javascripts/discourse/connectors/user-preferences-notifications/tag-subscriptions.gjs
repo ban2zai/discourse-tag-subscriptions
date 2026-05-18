@@ -33,6 +33,11 @@ function safeColor(val, fallback) {
   return /^#[0-9a-fA-F]{3,8}$/.test((val || "").trim()) ? val.trim() : fallback;
 }
 
+function safeCategoryColor(val) {
+  const color = (val || "").trim().replace(/^#/, "");
+  return /^[0-9a-fA-F]{3,8}$/.test(color) ? `#${color}` : "var(--primary-low-mid)";
+}
+
 export default class TagSubscriptions extends Component {
   @service siteSettings;
 
@@ -81,6 +86,13 @@ export default class TagSubscriptions extends Component {
 
   get helpLinkLabel() {
     return this.siteSettings.tag_subscription_help_link_label || "Инструкция для уведомлений";
+  }
+
+  get categoryCheckboxLabel() {
+    return (
+      this.siteSettings.tag_subscription_category_checkbox_label ||
+      "Получать уведомления по выбранным тегам в категории"
+    ).trim();
   }
 
   get siteEnabled() {
@@ -266,6 +278,11 @@ export default class TagSubscriptions extends Component {
     const level = this.selectedLevels.get(name);
     if (!level) return "";
     return level === "watching" ? "sel-2" : "sel-1";
+  }
+
+  @action
+  categoryBadgeStyle(category) {
+    return htmlSafe(`background:${safeCategoryColor(category?.color)};`);
   }
 
   @action
@@ -487,9 +504,24 @@ export default class TagSubscriptions extends Component {
       margin: 0;
     }
     .tsub-category-name {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
       color: var(--primary);
       font-size: var(--font-down-1);
       line-height: 1.4;
+      flex-wrap: wrap;
+    }
+    .tsub-category-badge {
+      width: 0.7rem;
+      height: 0.7rem;
+      border-radius: 2px;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+      flex: 0 0 auto;
+    }
+    .tsub-category-label-text,
+    .tsub-category-title-text {
+      overflow-wrap: anywhere;
     }
     .tsub-loading {
       display: flex;
@@ -723,7 +755,13 @@ export default class TagSubscriptions extends Component {
                     {{on "change" (fn this.toggleCategoryPreference category.id)}}
                   />
                   <span class="tsub-category-name">
-                    Получать уведомления по выбранным тегам в категории «{{category.name}}»
+                    <span class="tsub-category-label-text">{{this.categoryCheckboxLabel}}</span>
+                    <span
+                      class="tsub-category-badge"
+                      style={{this.categoryBadgeStyle category}}
+                      aria-hidden="true"
+                    ></span>
+                    <span class="tsub-category-title-text">{{category.name}}</span>
                   </span>
                 </label>
               {{/each}}

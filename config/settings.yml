@@ -33,6 +33,14 @@ plugins:
       en: "Gated categories where tag notifications are enabled by default for users"
       ru: "Gated-категории, где уведомления по тегам включены у пользователей по умолчанию"
 
+  tag_subscription_category_checkbox_label:
+    client: true
+    type: string
+    default: "Получать уведомления по выбранным тегам в категории"
+    description:
+      en: "Text shown before the category name in category notification checkboxes"
+      ru: "Текст перед названием категории в чекбоксах уведомлений по категориям"
+
   tag_subscription_level1_color:
     client: true
     type: string
