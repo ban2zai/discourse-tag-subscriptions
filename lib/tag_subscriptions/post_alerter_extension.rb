@@ -5,7 +5,7 @@ module ::TagSubscriptions::PostAlerterExtension
     user_ids = super
     return user_ids if !::TagSubscriptions.gated_category?(topic&.category_id)
 
-    ::TagSubscriptions.opted_in_user_ids_for(topic.category_id, user_ids)
+    ::TagSubscriptions.tag_notifications_enabled_user_ids_for(topic.category_id, user_ids)
   end
 
   def notify_post_users(
@@ -58,7 +58,7 @@ module ::TagSubscriptions::PostAlerterExtension
           users.id IN (
             SELECT tag_users.user_id
               FROM tag_users
-              JOIN tag_subscription_category_notification_opt_ins tscnoi
+         LEFT JOIN tag_subscription_category_notification_opt_ins tscnoi
                 ON tscnoi.user_id = tag_users.user_id
                AND tscnoi.category_id = :category_id
          LEFT JOIN topic_users tu ON tu.user_id = tag_users.user_id
@@ -75,12 +75,17 @@ module ::TagSubscriptions::PostAlerterExtension
                AND tag_users.notification_level = :watching
                AND tag_users.tag_id IN (:tag_ids)
                AND (tu.user_id IS NULL OR tu.notification_level = :watching)
+               AND (
+                 tscnoi.enabled IS TRUE OR
+                 (tscnoi.id IS NULL AND :default_enabled IS TRUE)
+               )
           )
         SQL
         watching: TopicUser.notification_levels[:watching],
         topic_id: post.topic_id,
         category_id: topic.category_id,
         tag_ids: tag_ids,
+        default_enabled: ::TagSubscriptions.default_enabled_category_ids.include?(topic.category_id),
         staff_group_id: Group::AUTO_GROUPS[:staff],
         everyone_group_id: Group::AUTO_GROUPS[:everyone],
       )

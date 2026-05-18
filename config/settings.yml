@@ -33,6 +33,14 @@ plugins:
       en: "Gated categories shown in the user notification preferences UI"
       ru: "Gated-категории, которые отображаются пользователю в настройках уведомлений"
 
+  tag_subscription_default_enabled_categories:
+    client: true
+    type: category_list
+    default: ""
+    description:
+      en: "Gated categories where tag notifications are enabled by default for users"
+      ru: "Gated-категории, где уведомления по тегам включены у пользователей по умолчанию"
+
   tag_subscription_level1_color:
     client: true
     type: string

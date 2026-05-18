@@ -57,6 +57,7 @@ hooks:
 | `tag_subscription_groups` | Имена групп тегов через `\|` в нужном порядке | `БГУ Разделы\|ЗГУ Разделы\|Техно Разделы` |
 | `tag_subscription_gated_categories` | Категории, где уведомления по тегам требуют явного включения пользователем | `Тех. задание` |
 | `tag_subscription_user_visible_categories` | Gated-категории, которые показываются пользователю в настройках | `Тех. задание` |
+| `tag_subscription_default_enabled_categories` | Gated-категории, где чекбокс уведомлений по тегам включён по умолчанию | `Инструкции\|Инструменты` |
 | `tag_subscription_pinned_tags` | Теги через `\|` для секции «Иные теги» вверху | `какой-раздел\|общее` |
 | `tag_subscription_level1_color` | Цвет (hex) для уровня «новая тема» | `#e5b000` |
 | `tag_subscription_level2_color` | Цвет (hex) для уровня «все ответы» | `#cc5500` |

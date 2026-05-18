@@ -23,6 +23,16 @@ RSpec.describe TagSubscriptionsController do
     expect(json["enabled_category_ids"]).to eq([category.id])
   end
 
+  it "returns default-enabled category preferences when the user has no override" do
+    SiteSetting.tag_subscription_default_enabled_categories = category.id.to_s
+    sign_in(user)
+
+    get "/tag-subscriptions/preferences.json", params: { username: user.username }
+
+    expect(response.status).to eq(200)
+    expect(response.parsed_body["enabled_category_ids"]).to eq([category.id])
+  end
+
   it "lets the current user replace visible category opt-ins" do
     sign_in(user)
 
@@ -36,6 +46,21 @@ RSpec.describe TagSubscriptionsController do
     expect(
       TagSubscriptions::CategoryNotificationOptIn.exists?(user: user, category: category),
     ).to eq(true)
+  end
+
+  it "stores disabled overrides for default-enabled categories" do
+    SiteSetting.tag_subscription_default_enabled_categories = category.id.to_s
+    sign_in(user)
+
+    put "/tag-subscriptions/preferences.json",
+        params: {
+          username: user.username,
+          enabled_category_ids: "",
+        }
+
+    expect(response.status).to eq(200)
+    preference = TagSubscriptions::CategoryNotificationOptIn.find_by(user: user, category: category)
+    expect(preference.enabled).to eq(false)
   end
 
   it "lets staff manage another user's category opt-ins" do

@@ -5,6 +5,7 @@ class CreateTagSubscriptionCategoryNotificationOptIns < ActiveRecord::Migration[
     create_table :tag_subscription_category_notification_opt_ins do |t|
       t.integer :user_id, null: false
       t.integer :category_id, null: false
+      t.boolean :enabled, null: false, default: true
       t.timestamps null: false
     end
 

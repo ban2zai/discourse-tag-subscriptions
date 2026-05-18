@@ -18,6 +18,10 @@ module ::TagSubscriptions
     gated_category_ids & category_ids_from_setting(SiteSetting.tag_subscription_user_visible_categories)
   end
 
+  def self.default_enabled_category_ids
+    gated_category_ids & category_ids_from_setting(SiteSetting.tag_subscription_default_enabled_categories)
+  end
+
   def self.gated_category?(category_id)
     SiteSetting.tag_subscriptions_enabled && gated_category_ids.include?(category_id.to_i)
   end
@@ -31,49 +35,66 @@ module ::TagSubscriptions
       .select { |category| guardian.can_see_category?(category) }
   end
 
-  def self.opted_in_category_ids_for(user, category_ids)
+  def self.enabled_category_ids_for(user, category_ids)
     return [] if user.blank? || category_ids.blank?
 
-    CategoryNotificationOptIn
+    category_ids = category_ids.map(&:to_i)
+    default_ids = default_enabled_category_ids & category_ids
+    overrides =
+      CategoryNotificationOptIn
       .where(user_id: user.id, category_id: category_ids)
-      .pluck(:category_id)
+      .pluck(:category_id, :enabled)
+      .to_h
+
+    category_ids.select do |category_id|
+      overrides.key?(category_id) ? overrides[category_id] : default_ids.include?(category_id)
+    end
   end
 
-  def self.opted_in_user_ids_for(category_id, user_ids)
+  def self.tag_notifications_enabled_user_ids_for(category_id, user_ids)
     return [] if category_id.blank? || user_ids.blank?
 
-    CategoryNotificationOptIn
+    user_ids = user_ids.map(&:to_i)
+    overrides =
+      CategoryNotificationOptIn
       .where(category_id: category_id, user_id: user_ids)
-      .pluck(:user_id)
+      .pluck(:user_id, :enabled)
+      .to_h
+
+    default_enabled = default_enabled_category_ids.include?(category_id.to_i)
+
+    user_ids.select do |user_id|
+      overrides.key?(user_id) ? overrides[user_id] : default_enabled
+    end
   end
 
-  def self.replace_visible_opt_ins!(user:, visible_category_ids:, enabled_category_ids:)
+  def self.replace_visible_preferences!(user:, visible_category_ids:, enabled_category_ids:)
     visible_category_ids = visible_category_ids.map(&:to_i)
     enabled_category_ids = enabled_category_ids.map(&:to_i) & visible_category_ids
 
     CategoryNotificationOptIn.transaction do
-      CategoryNotificationOptIn
-        .where(user_id: user.id, category_id: visible_category_ids)
-        .where.not(category_id: enabled_category_ids)
-        .delete_all
-
-      existing_ids =
+      existing =
         CategoryNotificationOptIn
-          .where(user_id: user.id, category_id: enabled_category_ids)
-          .pluck(:category_id)
+          .where(user_id: user.id, category_id: visible_category_ids)
+          .index_by(&:category_id)
 
       now = Time.zone.now
-      rows =
-        (enabled_category_ids - existing_ids).map do |category_id|
-          {
+      visible_category_ids.each do |category_id|
+        enabled = enabled_category_ids.include?(category_id)
+        record = existing[category_id]
+
+        if record
+          record.update!(enabled: enabled)
+        else
+          CategoryNotificationOptIn.create!(
             user_id: user.id,
             category_id: category_id,
+            enabled: enabled,
             created_at: now,
             updated_at: now,
-          }
+          )
         end
-
-      CategoryNotificationOptIn.insert_all(rows) if rows.present?
+      end
     end
   end
 end

@@ -52,6 +52,29 @@ RSpec.describe "tag subscription category notification opt-ins" do
     expect(notification_count(watcher, :watching_first_post)).to eq(1)
   end
 
+  it "allows watched tag first-post notifications in default-enabled gated categories" do
+    SiteSetting.tag_subscription_default_enabled_categories = gated_category.id.to_s
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
+
+    create_post_with_alerts(tagged_topic(gated_category))
+
+    expect(notification_count(watcher, :watching_first_post)).to eq(1)
+  end
+
+  it "suppresses watched tag first-post notifications when a default-enabled category is disabled by the user" do
+    SiteSetting.tag_subscription_default_enabled_categories = gated_category.id.to_s
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
+    TagSubscriptions::CategoryNotificationOptIn.create!(
+      user: watcher,
+      category: gated_category,
+      enabled: false,
+    )
+
+    create_post_with_alerts(tagged_topic(gated_category))
+
+    expect(notification_count(watcher, :watching_first_post)).to eq(0)
+  end
+
   it "suppresses watched tag reply notifications in gated categories without opt-in" do
     topic = tagged_topic(gated_category)
     Fabricate(:post, topic: topic)
@@ -67,6 +90,17 @@ RSpec.describe "tag subscription category notification opt-ins" do
     Fabricate(:post, topic: topic)
     TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching])
     TagSubscriptions::CategoryNotificationOptIn.create!(user: watcher, category: gated_category)
+
+    create_post_with_alerts(topic)
+
+    expect(notification_count(watcher, :watching_category_or_tag)).to eq(1)
+  end
+
+  it "allows watched tag reply notifications in default-enabled gated categories" do
+    SiteSetting.tag_subscription_default_enabled_categories = gated_category.id.to_s
+    topic = tagged_topic(gated_category)
+    Fabricate(:post, topic: topic)
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching])
 
     create_post_with_alerts(topic)
 

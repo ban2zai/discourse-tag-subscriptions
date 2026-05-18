@@ -35,7 +35,7 @@ after_initialize do
               text_color: category.text_color,
             }
           end,
-        enabled_category_ids: ::TagSubscriptions.opted_in_category_ids_for(target_user, category_ids),
+        enabled_category_ids: ::TagSubscriptions.enabled_category_ids_for(target_user, category_ids),
       }
     end
 
@@ -46,7 +46,7 @@ after_initialize do
       visible_category_ids = ::TagSubscriptions.visible_categories_for(target_user).map(&:id)
       enabled_category_ids = parse_category_ids(params[:enabled_category_ids])
 
-      ::TagSubscriptions.replace_visible_opt_ins!(
+      ::TagSubscriptions.replace_visible_preferences!(
         user: target_user,
         visible_category_ids: visible_category_ids,
         enabled_category_ids: enabled_category_ids,
