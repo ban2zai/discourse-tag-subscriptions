@@ -14,10 +14,6 @@ module ::TagSubscriptions
     category_ids_from_setting(SiteSetting.tag_subscription_gated_categories)
   end
 
-  def self.user_visible_category_ids
-    gated_category_ids & category_ids_from_setting(SiteSetting.tag_subscription_user_visible_categories)
-  end
-
   def self.default_enabled_category_ids
     gated_category_ids & category_ids_from_setting(SiteSetting.tag_subscription_default_enabled_categories)
   end
@@ -28,11 +24,13 @@ module ::TagSubscriptions
 
   def self.visible_categories_for(user)
     guardian = Guardian.new(user)
+    category_ids = gated_category_ids
+    categories_by_id = Category.where(id: category_ids).index_by(&:id)
 
-    Category
-      .where(id: user_visible_category_ids)
-      .order(:position, :id)
-      .select { |category| guardian.can_see_category?(category) }
+    category_ids.filter_map do |category_id|
+      category = categories_by_id[category_id]
+      category if category && guardian.can_see_category?(category)
+    end
   end
 
   def self.enabled_category_ids_for(user, category_ids)

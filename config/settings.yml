@@ -25,14 +25,6 @@ plugins:
       en: "Categories where tag notifications require explicit user opt-in"
       ru: "Категории, где уведомления по тегам требуют явного включения пользователем"
 
-  tag_subscription_user_visible_categories:
-    client: true
-    type: category_list
-    default: ""
-    description:
-      en: "Gated categories shown in the user notification preferences UI"
-      ru: "Gated-категории, которые отображаются пользователю в настройках уведомлений"
-
   tag_subscription_default_enabled_categories:
     client: true
     type: category_list

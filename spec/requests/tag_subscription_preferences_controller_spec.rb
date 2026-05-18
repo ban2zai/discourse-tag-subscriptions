@@ -5,10 +5,10 @@ RSpec.describe TagSubscriptionsController do
   fab!(:other_user) { Fabricate(:user) }
   fab!(:admin) { Fabricate(:admin) }
   fab!(:category) { Fabricate(:category) }
+  fab!(:second_category) { Fabricate(:category) }
 
   before do
     SiteSetting.tag_subscription_gated_categories = category.id.to_s
-    SiteSetting.tag_subscription_user_visible_categories = category.id.to_s
   end
 
   it "returns visible category preferences for the current user" do
@@ -31,6 +31,18 @@ RSpec.describe TagSubscriptionsController do
 
     expect(response.status).to eq(200)
     expect(response.parsed_body["enabled_category_ids"]).to eq([category.id])
+  end
+
+  it "returns categories in the gated setting order" do
+    SiteSetting.tag_subscription_gated_categories = "#{second_category.id}|#{category.id}"
+    sign_in(user)
+
+    get "/tag-subscriptions/preferences.json", params: { username: user.username }
+
+    expect(response.status).to eq(200)
+    expect(response.parsed_body["categories"].map { |c| c["id"] }).to eq(
+      [second_category.id, category.id],
+    )
   end
 
   it "lets the current user replace visible category opt-ins" do

@@ -10,7 +10,6 @@ RSpec.describe "tag subscription category notification opt-ins" do
 
   before do
     SiteSetting.tag_subscription_gated_categories = gated_category.id.to_s
-    SiteSetting.tag_subscription_user_visible_categories = gated_category.id.to_s
   end
 
   def tagged_topic(category)
