@@ -55,6 +55,8 @@ hooks:
 | Настройка | Описание | Пример |
 |---|---|---|
 | `tag_subscription_groups` | Имена групп тегов через `\|` в нужном порядке | `БГУ Разделы\|ЗГУ Разделы\|Техно Разделы` |
+| `tag_subscription_gated_categories` | Категории, где уведомления по тегам требуют явного включения пользователем | `Тех. задание` |
+| `tag_subscription_user_visible_categories` | Gated-категории, которые показываются пользователю в настройках | `Тех. задание` |
 | `tag_subscription_pinned_tags` | Теги через `\|` для секции «Иные теги» вверху | `какой-раздел\|общее` |
 | `tag_subscription_level1_color` | Цвет (hex) для уровня «новая тема» | `#e5b000` |
 | `tag_subscription_level2_color` | Цвет (hex) для уровня «все ответы» | `#cc5500` |
@@ -66,7 +68,8 @@ hooks:
 
 Плагин состоит из двух частей:
 
-**Ruby (`plugin.rb`)** — единственный эндпоинт `GET /tag-subscriptions/tag-groups.json`, доступный залогиненным пользователям. Возвращает группы тегов с учётом прав доступа пользователя и поля `parent_tag`. Staff получает все группы без фильтрации.
+**Ruby (`plugin.rb`)** — эндпоинты `GET /tag-subscriptions/tag-groups.json` и `/tag-subscriptions/preferences.json`, доступные залогиненным пользователям. Первый возвращает группы тегов с учётом прав доступа пользователя и поля `parent_tag`. Второй отдаёт категории, где пользователь может явно включить уведомления по выбранным тегам.
 
-**JavaScript/Handlebars** — Glimmer-компонент в outlet `user-preferences-notifications`. Загружает группы через кастомный эндпоинт, текущие подписки через `/u/:username.json`. При сохранении делает `PUT /u/:username.json` только с тег-полями, не трогая остальные настройки пользователя.
+**JavaScript/Handlebars** — Glimmer-компонент в outlet `user-preferences-notifications`. Загружает группы через кастомный эндпоинт, текущие подписки через `/u/:username.json`, а category opt-in через `/tag-subscriptions/preferences.json`. При сохранении делает `PUT /u/:username.json` только с тег-полями и отдельно сохраняет category opt-in.
 
+**Уведомления** — `PostAlerter` расширяется через `prepend`: для gated-категорий tag-derived уведомления создаются только пользователям, которые включили категорию в настройках. Прямые упоминания, ответы, watched topic/category и видимость тем не меняются.

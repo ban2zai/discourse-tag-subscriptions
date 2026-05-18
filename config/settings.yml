@@ -17,6 +17,22 @@ plugins:
       en: "Pipe-separated names of tag groups to show in the subscription UI"
       ru: "Имена групп тегов через | для отображения в UI подписок"
 
+  tag_subscription_gated_categories:
+    client: true
+    type: category_list
+    default: ""
+    description:
+      en: "Categories where tag notifications require explicit user opt-in"
+      ru: "Категории, где уведомления по тегам требуют явного включения пользователем"
+
+  tag_subscription_user_visible_categories:
+    client: true
+    type: category_list
+    default: ""
+    description:
+      en: "Gated categories shown in the user notification preferences UI"
+      ru: "Gated-категории, которые отображаются пользователю в настройках уведомлений"
+
   tag_subscription_level1_color:
     client: true
     type: string

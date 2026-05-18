@@ -38,10 +38,13 @@ export default class TagSubscriptions extends Component {
 
   @tracked tagGroups    = [];
   @tracked selectedLevels = new Map(); // tagName → "watching_first_post" | "watching"
+  @tracked categoryPreferences = [];
+  @tracked enabledCategoryIds = new Set();
   @tracked expandedGroups = new Set();
   @tracked isLoading    = true;
 
   _initialLevelMap = new Map(); // tagName → level (все поля, включая неуправляемые)
+  _initialEnabledCategoryIds = new Set();
   _saveHandler  = null;
   _saveBtn      = null;
   _observer     = null;
@@ -103,6 +106,8 @@ export default class TagSubscriptions extends Component {
   }
 
   get totalSelected() { return this.selectedLevels.size; }
+
+  get hasCategoryPreferences() { return this.categoryPreferences.length > 0; }
 
   constructor() {
     super(...arguments);
@@ -175,12 +180,16 @@ export default class TagSubscriptions extends Component {
     try {
       const username = this.args.outletArgs?.model?.username;
 
-      const [groupsResp, userResp] = await Promise.all([
+      const [groupsResp, userResp, preferencesResp] = await Promise.all([
         ajax("/tag-subscriptions/tag-groups.json"),
         ajax(`/u/${username}.json`),
+        ajax(`/tag-subscriptions/preferences.json?username=${encodeURIComponent(username)}`),
       ]);
 
       this.tagGroups = this.buildGroups(groupsResp.tag_groups || []);
+      this.categoryPreferences = preferencesResp.categories || [];
+      this._initialEnabledCategoryIds = new Set(preferencesResp.enabled_category_ids || []);
+      this.enabledCategoryIds = new Set(this._initialEnabledCategoryIds);
 
       const u = userResp.user || {};
       const toNames = (arr) => (arr || []).map((t) => (typeof t === "string" ? t : t.name));
@@ -250,6 +259,7 @@ export default class TagSubscriptions extends Component {
 
   @action isSelected(name) { return this.selectedLevels.has(name); }
   @action isExpanded(name) { return this.expandedGroups.has(name); }
+  @action isCategoryEnabled(id) { return this.enabledCategoryIds.has(id); }
 
   @action
   tagClass(name) {
@@ -321,6 +331,13 @@ export default class TagSubscriptions extends Component {
     this._autoUpdateParentTags();
   }
 
+  @action
+  toggleCategoryPreference(id) {
+    const next = new Set(this.enabledCategoryIds);
+    next.has(id) ? next.delete(id) : next.add(id);
+    this.enabledCategoryIds = next;
+  }
+
   // ─── Сохранение ───────────────────────────────────────────────────────────
 
   async _doSave() {
@@ -358,6 +375,16 @@ export default class TagSubscriptions extends Component {
         data: params.toString(),
       });
 
+      const preferenceParams = new URLSearchParams();
+      preferenceParams.set("username", username);
+      preferenceParams.set("enabled_category_ids", [...this.enabledCategoryIds].join(","));
+
+      await ajax("/tag-subscriptions/preferences.json", {
+        type: "PUT",
+        contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+        data: preferenceParams.toString(),
+      });
+
       const newMap = new Map();
       for (const [name, level] of this.selectedLevels) {
         if (allManaged.has(name)) newMap.set(name, level);
@@ -366,6 +393,7 @@ export default class TagSubscriptions extends Component {
         if (!allManaged.has(name)) newMap.set(name, level);
       }
       this._initialLevelMap = newMap;
+      this._initialEnabledCategoryIds = new Set(this.enabledCategoryIds);
 
     } catch (e) {
       console.error("[tsub] ошибка сохранения:", e);
@@ -413,6 +441,55 @@ export default class TagSubscriptions extends Component {
       font-size: var(--font-down-1);
       color: var(--primary-medium);
       margin-bottom: 0.75rem;
+    }
+    .tsub-category-box {
+      border: 1px solid var(--primary-low);
+      border-radius: 0.3em;
+      margin: 0 0 1rem;
+      background: var(--secondary);
+    }
+    .tsub-category-head {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--primary-low);
+      background: var(--primary-very-low);
+    }
+    .tsub-category-title {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.15rem;
+    }
+    .tsub-category-note {
+      color: var(--primary-medium);
+      font-size: var(--font-down-1);
+      line-height: 1.4;
+    }
+    .tsub-category-list {
+      display: flex;
+      flex-direction: column;
+    }
+    .tsub-category-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--primary-very-low);
+      user-select: none;
+    }
+    .tsub-category-row:last-child {
+      border-bottom: none;
+    }
+    .tsub-category-row:hover {
+      background: var(--primary-very-low);
+    }
+    .tsub-category-row input {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+    .tsub-category-name {
+      color: var(--primary);
+      font-size: var(--font-down-1);
+      line-height: 1.4;
     }
     .tsub-loading {
       display: flex;
@@ -628,6 +705,31 @@ export default class TagSubscriptions extends Component {
         <div class="tsub-total">
           Выбрано: <strong>{{this.totalSelected}}</strong>
         </div>
+
+        {{#if this.hasCategoryPreferences}}
+          <div class="tsub-category-box">
+            <div class="tsub-category-head">
+              <div class="tsub-category-title">Уведомления по категориям</div>
+              <div class="tsub-category-note">
+                Здесь можно включить уведомления по выбранным тегам в отдельных категориях. По умолчанию они отключены.
+              </div>
+            </div>
+            <div class="tsub-category-list">
+              {{#each this.categoryPreferences as |category|}}
+                <label class="tsub-category-row">
+                  <input
+                    type="checkbox"
+                    checked={{this.isCategoryEnabled category.id}}
+                    {{on "change" (fn this.toggleCategoryPreference category.id)}}
+                  />
+                  <span class="tsub-category-name">
+                    Получать уведомления по выбранным тегам в категории «{{category.name}}»
+                  </span>
+                </label>
+              {{/each}}
+            </div>
+          </div>
+        {{/if}}
 
         {{#if this.pinnedTags.length}}
           <div class="tsub-group {{this.pinnedSectionState}}">
