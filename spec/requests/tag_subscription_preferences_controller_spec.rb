@@ -19,7 +19,11 @@ RSpec.describe TagSubscriptionsController do
 
     expect(response.status).to eq(200)
     json = response.parsed_body
+    response_category = json["categories"].first
     expect(json["categories"].map { |c| c["id"] }).to eq([category.id])
+    expect(response_category["style_type"]).to eq(category.style_type)
+    expect(response_category).to have_key("icon")
+    expect(response_category).to have_key("emoji")
     expect(json["enabled_category_ids"]).to eq([category.id])
   end
 

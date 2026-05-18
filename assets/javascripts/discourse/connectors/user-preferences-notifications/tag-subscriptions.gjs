@@ -6,6 +6,7 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import icon from "discourse/helpers/d-icon";
+import dReplaceEmoji from "discourse/ui-kit/helpers/d-replace-emoji";
 import { schedule } from "@ember/runloop";
 import { htmlSafe } from "@ember/template";
 
@@ -286,6 +287,26 @@ export default class TagSubscriptions extends Component {
   }
 
   @action
+  categoryIconStyle(category) {
+    return htmlSafe(`color:${safeCategoryColor(category?.color)};`);
+  }
+
+  @action
+  categoryUsesIcon(category) {
+    return category?.style_type === "icon" && category?.icon;
+  }
+
+  @action
+  categoryUsesEmoji(category) {
+    return category?.style_type === "emoji" && category?.emoji;
+  }
+
+  @action
+  categoryEmojiToken(category) {
+    return `:${category.emoji}:`;
+  }
+
+  @action
   sectionState(group) {
     const count = group.tags.filter((t) => this.selectedLevels.has(t.name)).length;
     if (count === 0) return "none";
@@ -512,12 +533,28 @@ export default class TagSubscriptions extends Component {
       line-height: 1.4;
       flex-wrap: wrap;
     }
-    .tsub-category-badge {
+    .tsub-category-icon {
+      width: 1rem;
+      height: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+    .tsub-category-icon .d-icon,
+    .tsub-category-prefix-icon {
+      width: 0.95rem;
+      height: 0.95rem;
+    }
+    .tsub-category-square {
       width: 0.7rem;
       height: 0.7rem;
       border-radius: 2px;
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
-      flex: 0 0 auto;
+    }
+    .tsub-category-emoji {
+      font-size: 0.95rem;
+      line-height: 1;
     }
     .tsub-category-label-text,
     .tsub-category-title-text {
@@ -757,10 +794,21 @@ export default class TagSubscriptions extends Component {
                   <span class="tsub-category-name">
                     <span class="tsub-category-label-text">{{this.categoryCheckboxLabel}}</span>
                     <span
-                      class="tsub-category-badge"
-                      style={{this.categoryBadgeStyle category}}
+                      class="tsub-category-icon"
+                      style={{this.categoryIconStyle category}}
                       aria-hidden="true"
-                    ></span>
+                    >
+                      {{#if (this.categoryUsesIcon category)}}
+                        {{icon category.icon class="tsub-category-prefix-icon"}}
+                      {{else if (this.categoryUsesEmoji category)}}
+                        {{dReplaceEmoji (this.categoryEmojiToken category) class="tsub-category-emoji"}}
+                      {{else}}
+                        <span
+                          class="tsub-category-square"
+                          style={{this.categoryBadgeStyle category}}
+                        ></span>
+                      {{/if}}
+                    </span>
                     <span class="tsub-category-title-text">{{category.name}}</span>
                   </span>
                 </label>

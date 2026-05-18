@@ -33,6 +33,9 @@ after_initialize do
               slug: category.slug,
               color: category.color,
               text_color: category.text_color,
+              style_type: category.style_type,
+              icon: category.icon,
+              emoji: category.emoji,
             }
           end,
         enabled_category_ids: ::TagSubscriptions.enabled_category_ids_for(target_user, category_ids),
