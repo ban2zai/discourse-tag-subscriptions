@@ -26,6 +26,15 @@ RSpec.describe "tag subscription category notification opt-ins" do
     user.notifications.where(notification_type: Notification.types[type]).count
   end
 
+  def run_category_change_notification(post)
+    Jobs.run_immediately! do
+      Jobs::NotifyCategoryChange.new.execute(
+        post_id: post.id,
+        notified_user_ids: [post.user_id, post.last_editor_id].uniq,
+      )
+    end
+  end
+
   it "keeps watched tag first-post notifications in normal categories" do
     TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
 
@@ -70,6 +79,33 @@ RSpec.describe "tag subscription category notification opt-ins" do
     )
 
     create_post_with_alerts(tagged_topic(gated_category))
+
+    expect(notification_count(watcher, :watching_first_post)).to eq(0)
+  end
+
+  it "notifies watched tag first-post users when a tagged topic moves into an opted-in gated category" do
+    SiteSetting.tag_subscription_gated_categories = "#{normal_category.id}|#{gated_category.id}"
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
+    TagSubscriptions::CategoryNotificationOptIn.create!(user: watcher, category: gated_category)
+    topic = tagged_topic(normal_category)
+    post = create_post_with_alerts(topic)
+
+    expect(notification_count(watcher, :watching_first_post)).to eq(0)
+
+    topic.update!(category: gated_category)
+    run_category_change_notification(post)
+
+    expect(notification_count(watcher, :watching_first_post)).to eq(1)
+  end
+
+  it "does not notify watched tag first-post users when a tagged topic moves into a gated category without opt-in" do
+    SiteSetting.tag_subscription_gated_categories = "#{normal_category.id}|#{gated_category.id}"
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
+    topic = tagged_topic(normal_category)
+    post = create_post_with_alerts(topic)
+
+    topic.update!(category: gated_category)
+    run_category_change_notification(post)
 
     expect(notification_count(watcher, :watching_first_post)).to eq(0)
   end

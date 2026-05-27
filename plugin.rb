@@ -7,10 +7,12 @@
 # enabled_site_setting: tag_subscriptions_enabled
 
 require_relative "lib/tag_subscriptions"
+require_relative "lib/tag_subscriptions/notify_category_change_extension"
 require_relative "lib/tag_subscriptions/post_alerter_extension"
 
 after_initialize do
   reloadable_patch do
+    Jobs::NotifyCategoryChange.prepend ::TagSubscriptions::NotifyCategoryChangeExtension
     PostAlerter.prepend ::TagSubscriptions::PostAlerterExtension
   end
 
