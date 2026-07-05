@@ -7,6 +7,7 @@ RSpec.describe "tag subscription category notification opt-ins" do
   fab!(:watcher) { Fabricate(:user) }
   fab!(:category_watcher) { Fabricate(:user) }
   fab!(:poster) { Fabricate(:user) }
+  fab!(:subscription_group) { Fabricate(:group, name: "tz-access") }
 
   before do
     SiteSetting.tag_subscription_gated_categories = gated_category.id.to_s
@@ -62,6 +63,17 @@ RSpec.describe "tag subscription category notification opt-ins" do
 
   it "allows watched tag first-post notifications in default-enabled gated categories" do
     SiteSetting.tag_subscription_default_enabled_categories = gated_category.id.to_s
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
+
+    create_post_with_alerts(tagged_topic(gated_category))
+
+    expect(notification_count(watcher, :watching_first_post)).to eq(1)
+  end
+
+  it "allows watched tag first-post notifications in group-default gated categories" do
+    SiteSetting.tag_subscription_group_default_enabled_categories =
+      %Q("tz-access":"#{gated_category.id}")
+    subscription_group.add(watcher)
     TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching_first_post])
 
     create_post_with_alerts(tagged_topic(gated_category))
@@ -140,6 +152,37 @@ RSpec.describe "tag subscription category notification opt-ins" do
     create_post_with_alerts(topic)
 
     expect(notification_count(watcher, :watching_category_or_tag)).to eq(1)
+  end
+
+  it "allows watched tag reply notifications in group-default gated categories" do
+    SiteSetting.tag_subscription_group_default_enabled_categories =
+      %Q("tz-access":"#{gated_category.id}")
+    subscription_group.add(watcher)
+    topic = tagged_topic(gated_category)
+    Fabricate(:post, topic: topic)
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching])
+
+    create_post_with_alerts(topic)
+
+    expect(notification_count(watcher, :watching_category_or_tag)).to eq(1)
+  end
+
+  it "suppresses watched tag reply notifications when a group-default category is disabled by the user" do
+    SiteSetting.tag_subscription_group_default_enabled_categories =
+      %Q("tz-access":"#{gated_category.id}")
+    subscription_group.add(watcher)
+    topic = tagged_topic(gated_category)
+    Fabricate(:post, topic: topic)
+    TagUser.change(watcher.id, tag.id, TagUser.notification_levels[:watching])
+    TagSubscriptions::CategoryNotificationOptIn.create!(
+      user: watcher,
+      category: gated_category,
+      enabled: false,
+    )
+
+    create_post_with_alerts(topic)
+
+    expect(notification_count(watcher, :watching_category_or_tag)).to eq(0)
   end
 
   it "keeps watched category notifications in gated categories without opt-in" do

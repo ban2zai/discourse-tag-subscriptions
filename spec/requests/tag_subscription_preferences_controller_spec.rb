@@ -6,6 +6,7 @@ RSpec.describe TagSubscriptionsController do
   fab!(:admin) { Fabricate(:admin) }
   fab!(:category) { Fabricate(:category) }
   fab!(:second_category) { Fabricate(:category) }
+  fab!(:subscription_group) { Fabricate(:group, name: "tz-access") }
 
   before do
     SiteSetting.tag_subscription_gated_categories = category.id.to_s
@@ -35,6 +36,35 @@ RSpec.describe TagSubscriptionsController do
 
     expect(response.status).to eq(200)
     expect(response.parsed_body["enabled_category_ids"]).to eq([category.id])
+  end
+
+  it "returns group-default category preferences when the user has no override" do
+    SiteSetting.tag_subscription_gated_categories = "#{category.id}|#{second_category.id}"
+    SiteSetting.tag_subscription_group_default_enabled_categories =
+      %Q("tz-access":"#{category.id}"|"other-group":"#{second_category.id}")
+    subscription_group.add(user)
+    sign_in(user)
+
+    get "/tag-subscriptions/preferences.json", params: { username: user.username }
+
+    expect(response.status).to eq(200)
+    expect(response.parsed_body["enabled_category_ids"]).to eq([category.id])
+  end
+
+  it "lets user overrides disable group-default category preferences" do
+    SiteSetting.tag_subscription_group_default_enabled_categories = %Q("tz-access":"#{category.id}")
+    subscription_group.add(user)
+    TagSubscriptions::CategoryNotificationOptIn.create!(
+      user: user,
+      category: category,
+      enabled: false,
+    )
+    sign_in(user)
+
+    get "/tag-subscriptions/preferences.json", params: { username: user.username }
+
+    expect(response.status).to eq(200)
+    expect(response.parsed_body["enabled_category_ids"]).to eq([])
   end
 
   it "returns categories in the gated setting order" do

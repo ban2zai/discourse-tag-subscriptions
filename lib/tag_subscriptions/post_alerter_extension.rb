@@ -52,6 +52,25 @@ module ::TagSubscriptions::PostAlerterExtension
     tag_ids = topic.topic_tags.pluck("topic_tags.tag_id")
     return [] if tag_ids.blank?
 
+    group_default_group_names = ::TagSubscriptions.group_names_defaulting_category(topic.category_id)
+    group_default_sql =
+      if group_default_group_names.present?
+        <<~SQL
+          OR (
+            tscnoi.id IS NULL AND EXISTS (
+              SELECT 1
+                FROM group_users category_default_gu
+          INNER JOIN groups category_default_groups
+                  ON category_default_groups.id = category_default_gu.group_id
+               WHERE category_default_gu.user_id = tag_users.user_id
+                 AND category_default_groups.name IN (:group_default_group_names)
+            )
+          )
+        SQL
+      else
+        ""
+      end
+
     notify =
       User.where(
         <<~SQL,
@@ -78,6 +97,7 @@ module ::TagSubscriptions::PostAlerterExtension
                AND (
                  tscnoi.enabled IS TRUE OR
                  (tscnoi.id IS NULL AND :default_enabled IS TRUE)
+                 #{group_default_sql}
                )
           )
         SQL
@@ -86,6 +106,7 @@ module ::TagSubscriptions::PostAlerterExtension
         category_id: topic.category_id,
         tag_ids: tag_ids,
         default_enabled: ::TagSubscriptions.default_enabled_category_ids.include?(topic.category_id),
+        group_default_group_names: group_default_group_names,
         staff_group_id: Group::AUTO_GROUPS[:staff],
         everyone_group_id: Group::AUTO_GROUPS[:everyone],
       )
